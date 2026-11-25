@@ -183,10 +183,13 @@ def generate_ai_evaluation(survey_data):
         if career_etc: c_all.append(career_etc)
         eval_sentences.append(f"졸업 후 진로로는 [{', '.join(c_all)}] 분야로의 진출을 명확히 설정하고 필요한 역량을 차근차근 갖추어 가고 있음.")
         
-    # 7. Life status
+    # 7. Life status or Vacation plan based on term
     life = survey_data.get('lifeStatus', [])
     if life:
-        eval_sentences.append(f"대학생활 및 심리 상태에 대해 [{', '.join(life)}] 현황을 나타내고 있으며, 마주하는 애로사항을 지혜롭게 해결하려는 긍정적인 태도를 견지하고 있음.")
+        if '2차' in term:
+            eval_sentences.append(f"방학 동안의 계획과 관련하여 [{', '.join(life)}] 사항을 중심으로 알차고 주도적인 방학 생활을 준비하고 있음.")
+        else:
+            eval_sentences.append(f"대학생활 및 심리 상태에 대해 [{', '.join(life)}] 현황을 나타내고 있으며, 마주하는 애로사항을 지혜롭게 해결하려는 긍정적인 태도를 견지하고 있음.")
         
     # 8. Message to prof
     msg = survey_data.get('messageToProfessor', '').strip()
@@ -329,26 +332,44 @@ with st.form("survey_form"):
     career_tags = st.multiselect("졸업 후 희망 진로 분야", career_options)
     career_etc = st.text_input("기타 희망 진로 (선택 입력)", placeholder="기타 희망 진로 분야 직접 기재")
 
-    st.markdown('<div class="section-header">🌱 9. 대학생활 및 심리상태 (선택)</div>', unsafe_allow_html=True)
-    life_options = ["원만한 생활", "스트레스", "선/후배 동기관계", "경제적 어려움", "통학", "기타"]
-    life_tags = st.multiselect("최근 대학생활 및 심리 상태", life_options, default=["원만한 생활"])
+    # 9. 대학생활 및 심리상태 (1차) vs 방학 동안의 계획 (2차)
+    is_second_term = "2차" in term
     
-    stress_reason = ""
-    rel_reason = ""
-    fin_reason = ""
-    commute_reason = ""
-    etc_reason = ""
-    
-    if "스트레스" in life_tags:
-        stress_reason = st.text_input("스트레스 사유 (선택 입력)", placeholder="스트레스의 원인이나 고민")
-    if "선/후배 동기관계" in life_tags:
-        rel_reason = st.text_input("동기/선후배 관계 사유 (선택 입력)", placeholder="교우관계 관련 고민")
-    if "경제적 어려움" in life_tags:
-        fin_reason = st.text_input("경제적 애로 사유 (선택 입력)", placeholder="장학금, 학비, 생활비 고민")
-    if "통학" in life_tags:
-        commute_reason = st.text_input("통학 애로 사유 (선택 입력)", placeholder="통학 소요시간, 기숙사 등")
-    if "기타" in life_tags:
-        etc_reason = st.text_input("기타 사유 (선택 입력)", placeholder="기타 내용 기재")
+    if is_second_term:
+        st.markdown('<div class="section-header">🏖️ 9. 방학 동안의 계획 (선택)</div>', unsafe_allow_html=True)
+        life_options = [
+            "전공 학습 복습 및 보완", "토익/공인어학 집중 학습", "자격증 취득 준비(RI/NDT/컴활 등)",
+            "병원 임상실습 이수", "봉사활동 참여", "아르바이트 및 사회경험",
+            "휴식 및 체력 증진", "진로 탐색 및 병원 견학", "기타 개인 계획"
+        ]
+        life_tags = st.multiselect("방학 동안 집중할 주요 활동 계획을 선택해 주세요", life_options)
+        
+        stress_reason = ""
+        rel_reason = ""
+        fin_reason = ""
+        commute_reason = ""
+        etc_reason = st.text_input("방학 계획 세부사항 및 목표 (선택 입력)", placeholder="예: 토익 750점 달성, 방사선물리학 2학기 예습 등")
+    else:
+        st.markdown('<div class="section-header">🌱 9. 대학생활 및 심리상태 (선택)</div>', unsafe_allow_html=True)
+        life_options = ["원만한 생활", "스트레스", "선/후배 동기관계", "경제적 어려움", "통학", "기타"]
+        life_tags = st.multiselect("최근 대학생활 및 심리 상태", life_options, default=["원만한 생활"])
+        
+        stress_reason = ""
+        rel_reason = ""
+        fin_reason = ""
+        commute_reason = ""
+        etc_reason = ""
+        
+        if "스트레스" in life_tags:
+            stress_reason = st.text_input("스트레스 사유 (선택 입력)", placeholder="스트레스의 원인이나 고민")
+        if "선/후배 동기관계" in life_tags:
+            rel_reason = st.text_input("동기/선후배 관계 사유 (선택 입력)", placeholder="교우관계 관련 고민")
+        if "경제적 어려움" in life_tags:
+            fin_reason = st.text_input("경제적 애로 사유 (선택 입력)", placeholder="장학금, 학비, 생활비 고민")
+        if "통학" in life_tags:
+            commute_reason = st.text_input("통학 애로 사유 (선택 입력)", placeholder="통학 소요시간, 기숙사 등")
+        if "기타" in life_tags:
+            etc_reason = st.text_input("기타 사유 (선택 입력)", placeholder="기타 내용 기재")
 
     st.markdown('<div class="section-header">🤝 10. 면담 요청 형태</div>', unsafe_allow_html=True)
     offline_request = st.radio(
