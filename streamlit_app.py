@@ -435,24 +435,34 @@ if submitted:
         - **반영 상태:** 신한대학교 방사선학과 상담기록부(`surveys.csv`)에 즉시 동기화되었습니다.
         """)
 
-# --- 교수님 전용 조회 및 다운로드 관리자 구역 ---
-st.write("")
-st.write("")
-st.markdown("---")
+# --- 교수님 전용 조회 및 다운로드 관리자 구역 (학생 화면에서는 미표시) ---
+# 일반 학생 접속 시에는 메뉴 자체가 아예 보이지 않으며 클릭할 수 없습니다.
+# 교수님께서 주소 뒤에 '?admin=true'를 붙이시거나 사이드바 비밀접속을 누르셨을 때만 나타납니다.
+params = st.query_params
+is_admin_mode = params.get("admin", "") in ["true", "1", "prof"]
 
-with st.expander("🔒 교수님 전용 관리 메뉴 (제출 현황 조회 & 엑셀/CSV 다운로드)", expanded=False):
-    st.markdown("""
-    <div style="font-size: 12px; color: #757575; margin-bottom: 8px;">
-        지도교수님 전용 구역입니다. 학생들이 제출한 설문 내역을 웹에서 즉시 확인하고 CSV로 내려받을 수 있습니다.
-    </div>
-    """, unsafe_allow_html=True)
+# 사이드바 맨 하단에 작고 눈에 띄지 않는 교수님 전용 로그인 토글 제공
+with st.sidebar:
+    st.caption("신한대학교 방사선학과")
+    show_admin_box = st.checkbox("교수님 전용 모드", value=is_admin_mode)
 
-    admin_pw = st.text_input("교수님 인증 암호", type="password", placeholder="비밀번호 입력 (기본: shinhan1234)", key="admin_pw_input")
+if is_admin_mode or show_admin_box:
+    st.write("")
+    st.write("")
+    st.markdown("---")
     
-    # 기본 암호: shinhan1234 (또는 빈칸 방지)
-    if admin_pw:
-        if admin_pw.strip() in ["shinhan1234", "1234", "shinhan"]:
-            st.success("✅ 교수님 인증이 완료되었습니다.")
+    with st.expander("교수님 전용 관리 메뉴 (제출 현황 조회 & 엑셀 다운로드)", expanded=True):
+        st.markdown("""
+        <div style="font-size: 12px; color: #757575; margin-bottom: 8px;">
+            지도교수님 전용 구역입니다. 학생들이 제출한 설문 내역을 웹에서 즉시 확인하고 CSV로 내려받을 수 있습니다.
+        </div>
+        """, unsafe_allow_html=True)
+
+        admin_pw = st.text_input("교수님 인증 암호", type="password", placeholder="비밀번호를 입력하세요", key="admin_pw_input")
+        
+        if admin_pw:
+            if admin_pw.strip() in ["shinhan1234", "1234", "shinhan"]:
+                st.success("인증이 완료되었습니다.")
             
             if os.path.exists(SURVEYS_FILE):
                 try:
@@ -518,5 +528,5 @@ with st.expander("🔒 교수님 전용 관리 메뉴 (제출 현황 조회 & �
             else:
                 st.info("아직 제출된 학생 설문 데이터가 없습니다.")
         else:
-            st.error("암호가 일치하지 않습니다. (기본 암호: shinhan1234)")
+            st.error("암호가 일치하지 않습니다.")
 
