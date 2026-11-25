@@ -223,7 +223,20 @@ def save_survey(survey_record):
     if os.path.exists(SURVEYS_FILE):
         try:
             old_df = pd.read_csv(SURVEYS_FILE, encoding='utf-8-sig', dtype=str)
-            combined = pd.concat([new_df, old_df], ignore_index=True)
+            # 같은 학생이 같은 상담 회차(term)에 이미 제출한 기록이 있으면 기존 것을 제거하고 최신 내용으로 갱신
+            s_id = str(survey_record.get('studentId', '')).strip()
+            s_term = str(survey_record.get('term', '')).strip()
+            
+            if s_id and 'studentId' in old_df.columns:
+                old_df['studentId_clean'] = old_df['studentId'].astype(str).str.strip()
+                old_df['term_clean'] = old_df['term'].astype(str).str.strip()
+                
+                # 동일 학번 + 동일 회차 중복 필터링
+                filtered_old = old_df[~((old_df['studentId_clean'] == s_id) & (old_df['term_clean'] == s_term))]
+                filtered_old = filtered_old.drop(columns=['studentId_clean', 'term_clean'], errors='ignore')
+                combined = pd.concat([new_df, filtered_old], ignore_index=True)
+            else:
+                combined = pd.concat([new_df, old_df], ignore_index=True)
         except Exception:
             combined = new_df
     else:
