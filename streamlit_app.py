@@ -434,3 +434,89 @@ if submitted:
         - **면담 구분:** {meeting_val}
         - **반영 상태:** 신한대학교 방사선학과 상담기록부(`surveys.csv`)에 즉시 동기화되었습니다.
         """)
+
+# --- 교수님 전용 조회 및 다운로드 관리자 구역 ---
+st.write("")
+st.write("")
+st.markdown("---")
+
+with st.expander("🔒 교수님 전용 관리 메뉴 (제출 현황 조회 & 엑셀/CSV 다운로드)", expanded=False):
+    st.markdown("""
+    <div style="font-size: 12px; color: #757575; margin-bottom: 8px;">
+        지도교수님 전용 구역입니다. 학생들이 제출한 설문 내역을 웹에서 즉시 확인하고 CSV로 내려받을 수 있습니다.
+    </div>
+    """, unsafe_allow_html=True)
+
+    admin_pw = st.text_input("교수님 인증 암호", type="password", placeholder="비밀번호 입력 (기본: shinhan1234)", key="admin_pw_input")
+    
+    # 기본 암호: shinhan1234 (또는 빈칸 방지)
+    if admin_pw:
+        if admin_pw.strip() in ["shinhan1234", "1234", "shinhan"]:
+            st.success("✅ 교수님 인증이 완료되었습니다.")
+            
+            if os.path.exists(SURVEYS_FILE):
+                try:
+                    df_surveys = pd.read_csv(SURVEYS_FILE, encoding='utf-8-sig', dtype=str)
+                except Exception:
+                    df_surveys = pd.DataFrame()
+            else:
+                df_surveys = pd.DataFrame()
+                
+            if not df_surveys.empty:
+                st.markdown(f"**총 접수된 설문: {len(df_surveys)}건**")
+                
+                # 요약 통계 카드
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    st.metric("총 접수 건수", f"{len(df_surveys)}건")
+                with col_b:
+                    offline_cnt = len(df_surveys[df_surveys['offlineMeetingRequest'].str.contains('오프라인', na=False)])
+                    st.metric("🔴 대면 면담 요청", f"{offline_cnt}명")
+                with col_c:
+                    online_cnt = len(df_surveys[~df_surveys['offlineMeetingRequest'].str.contains('오프라인', na=False)])
+                    st.metric("🟢 온라인 서면 종결", f"{online_cnt}명")
+                
+                # CSV 원본 다운로드 버튼 (UTF-8 BOM 포함하여 엑셀에서 바로 깨짐없이 열림)
+                csv_bytes = df_surveys.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+                
+                st.download_button(
+                    label="📥 전체 설문 결과 CSV 다운로드 (엑셀 완벽 호환)",
+                    data=csv_bytes,
+                    file_name=f"신한대_방사선학과_설문접수현황_{datetime.date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+                st.caption("💡 내려받으신 CSV 파일은 교수님 상담 프로그램의 [📥 구글 폼 응답 CSV 가져오기] 버튼을 통해 1초 만에 불러오실 수 있습니다.")
+
+                # 최근 제출된 학생 목록 테이블
+                st.markdown("#### 📋 학생별 제출 요약 목록")
+                display_cols = ['studentId', 'studentName', 'grade', 'term', 'totalGpa', 'offlineMeetingRequest', 'submissionDate']
+                available_cols = [c for c in display_cols if c in df_surveys.columns]
+                
+                df_preview = df_surveys[available_cols].copy()
+                df_preview.columns = ['학번', '성명', '학년', '상담회차', '총학점', '면담형태', '제출일자'][:len(available_cols)]
+                st.dataframe(df_preview, use_container_width=True)
+
+                # 학생별 AI 소견서 상세 조회
+                st.markdown("#### 🔍 학생별 AI 평가문장 (최소 6~7문장) 상세 열람")
+                student_options = df_surveys.apply(lambda row: f"{row.get('studentName', '')} ({row.get('studentId', '')}) - {row.get('submissionDate', '')}", axis=1).tolist()
+                selected_student = st.selectbox("열람할 학생 선택", student_options)
+                
+                if selected_student:
+                    idx = student_options.index(selected_student)
+                    student_row = df_surveys.iloc[idx]
+                    
+                    st.markdown(f"**[{student_row.get('studentName', '')} 학생 사전 상담 요약]**")
+                    with st.container():
+                        st.info(f"**[상담 요약]**\n\n{student_row.get('aiSummary', '요약 없음')}")
+                        st.success(f"**[학생 상태 및 소견 (정성 문장)]**\n\n{student_row.get('aiEvaluation', '소견 없음')}")
+                        st.warning(f"**[지도 조언 및 향후 계획]**\n\n{student_row.get('aiPlan', '계획 없음')}")
+                        
+                        full_txt = student_row.get('aiFullContent', '')
+                        if full_txt:
+                            st.text_area("포털 복사용 전체 텍스트", full_txt, height=180)
+            else:
+                st.info("아직 제출된 학생 설문 데이터가 없습니다.")
+        else:
+            st.error("암호가 일치하지 않습니다. (기본 암호: shinhan1234)")
+
