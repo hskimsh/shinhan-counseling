@@ -260,10 +260,23 @@ st.markdown("""
 
 students_df = load_students()
 
+# 📌 1. 상담 회차 구분 (클릭 즉시 화면이 전환되도록 form 바깥에 배치)
+st.markdown('<div class="section-header">📌 1. 상담 회차 선택</div>', unsafe_allow_html=True)
+term = st.radio(
+    "상담 회차 구분 (클릭 시 1차/2차 전용 설문 항목으로 자동 전환됩니다) *",
+    ["1차 (학기초/중반 상담)", "2차 (학기말 성과 및 진로)"],
+    horizontal=True,
+    key="selected_term_radio"
+)
+is_second_term = "2차" in term
+
+if is_second_term:
+    st.info("🏖️ **2차 (학기말 성과 및 진로) 모드:** 9번 항목이 **[방학 동안의 계획]**으로 전환되었습니다.")
+else:
+    st.info("🌱 **1차 (학기초/중반 상담) 모드:** 9번 항목이 **[대학생활 및 심리상태]**로 설정되어 있습니다.")
+
 with st.form("survey_form"):
-    st.markdown('<div class="section-header">📌 1. 상담 회차 및 학생 기본 정보</div>', unsafe_allow_html=True)
-    
-    term = st.radio("상담 회차 구분 *", ["1차 (학기초/중반 상담)", "2차 (학기말 성과 및 진로)"], horizontal=True)
+    st.markdown('<div class="section-header">👤 학생 기본 정보</div>', unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1.2, 1.2, 0.8])
     with c1:
