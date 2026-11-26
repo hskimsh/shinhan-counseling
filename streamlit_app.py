@@ -572,6 +572,54 @@ if is_admin_mode or show_admin_box:
                         full_txt = student_row.get('aiFullContent', '')
                         if full_txt:
                             st.text_area("포털 복사용 전체 텍스트", full_txt, height=180)
+                            
+                    # 오프라인 면담 요청 학생인 경우 일정 안내문 생성기 제공
+                    if '오프라인' in str(student_row.get('offlineMeetingRequest', '')):
+                        st.markdown("---")
+                        st.markdown("#### 📅 오프라인 면담 일정 안내문 생성 및 발송")
+                        
+                        m_col1, m_col2 = st.columns(2)
+                        with m_col1:
+                            m_date = st.date_input("면담 예정일자", value=datetime.date.today() + datetime.timedelta(days=1), key="m_date_picker")
+                        with m_col2:
+                            m_time = st.text_input("면담 시간", value="14:00", key="m_time_input")
+                            
+                        m_place = st.text_input("면담 장소", value="방사선학과 교수연구실 (신한관 4층)", key="m_place_input")
+                        
+                        # 학생 연락처 조회 (students.csv 연계)
+                        s_phone = ""
+                        s_email = ""
+                        if not students_df.empty and 'id' in students_df.columns:
+                            m_match = students_df[students_df['id'].astype(str).str.strip() == str(student_row.get('studentId', '')).strip()]
+                            if not m_match.empty:
+                                s_phone = str(m_match.iloc[0].get('phone', ''))
+                                s_email = str(m_match.iloc[0].get('email', ''))
+                        
+                        notice_text = f"""[신한대학교 방사선학과 지도교수 면담 안내]
+
+안녕하세요, {student_row.get('studentName', '')} 학생.
+제출해 준 사전 상담 기록지({student_row.get('term', '1차')})의 오프라인 면담 요청을 확인하였습니다.
+아래와 같이 개별 면담 일정을 안내하니 시간을 확인하고 참석하기 바랍니다.
+
+■ 면담 대상: {student_row.get('studentName', '')} ({student_row.get('studentId', '')}, {student_row.get('grade', '')}학년)
+■ 면담 일시: {m_date.strftime('%Y년 %m월 %d일')} {m_time}
+■ 면담 장소: {m_place}
+■ 준비 사항: 사전 제출한 상담 내용을 바탕으로 진로 및 학업 개별 면담 진행
+
+※ 일정 조율이 필요한 경우 미리 교수님에게 연락 바랍니다.
+- 방사선학과 지도교수 드림"""
+                        
+                        st.text_area("카톡 / 문자 / 공지용 면담 안내문", notice_text, height=180)
+                        
+                        btn_col1, btn_col2 = st.columns(2)
+                        with btn_col1:
+                            if s_phone and s_phone != "nan":
+                                sms_link = f"sms:{s_phone}?body={notice_text}"
+                                st.markdown(f'<a href="{sms_link}" target="_blank" style="display:inline-block;padding:8px 16px;background:#10b981;color:white;border-radius:6px;text-decoration:none;font-weight:600;font-size:12px;">📱 {student_row.get("studentName", "")} 학생에게 문자(SMS) 연결 ({s_phone})</a>', unsafe_allow_html=True)
+                        with btn_col2:
+                            if s_email and s_email != "nan":
+                                mail_link = f"mailto:{s_email}?subject=[신한대 방사선학과] {student_row.get('studentName', '')} 학생 개별 면담 안내&body={notice_text}"
+                                st.markdown(f'<a href="{mail_link}" target="_blank" style="display:inline-block;padding:8px 16px;background:#0075de;color:white;border-radius:6px;text-decoration:none;font-weight:600;font-size:12px;">✉️ 학생 이메일 발송 ({s_email})</a>', unsafe_allow_html=True)
             else:
                 st.info("아직 제출된 학생 설문 데이터가 없습니다.")
         else:
